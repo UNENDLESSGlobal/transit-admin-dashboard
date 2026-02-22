@@ -97,6 +97,11 @@ body {
     transition: background .3s, color .3s;
 }
 
+.theme-transitioning,
+.theme-transitioning * {
+    transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease, fill 0.4s ease, stroke 0.4s ease !important;
+}
+
 /* ═══════════════ SIDEBAR ═══════════════ */
 .sidebar {
     position: fixed;
@@ -109,7 +114,8 @@ body {
     display: flex;
     flex-direction: column;
     z-index: 100;
-    transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+    transition: width .3s cubic-bezier(.4, 0, .2, 1), transform .3s cubic-bezier(.4, 0, .2, 1);
+    overflow-x: hidden;
 }
 
 .sidebar-header {
@@ -258,7 +264,7 @@ body {
     flex: 1;
     padding: 1.5rem 2rem 3rem;
     min-height: 100vh;
-    transition: margin .3s;
+    transition: margin-left .3s cubic-bezier(.4, 0, .2, 1);
 }
 
 /* Top Bar */
@@ -282,7 +288,7 @@ body {
 }
 
 .hamburger {
-    display: none;
+    display: flex;
     flex-direction: column;
     gap: 4px;
     background: none;
@@ -499,12 +505,13 @@ body {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: .75rem;
-    overflow: hidden;
+    overflow-x: auto;
     box-shadow: var(--card-shadow);
 }
 
 .data-table {
     width: 100%;
+    min-width: 600px;
     border-collapse: collapse;
 }
 
@@ -741,6 +748,48 @@ body {
     }
 }
 
+/* ═══════════════ DESKTOP COLLAPSED SIDEBAR ═══════════════ */
+@media (min-width: 769px) {
+    body.sidebar-collapsed .sidebar {
+        width: 80px;
+    }
+
+    body.sidebar-collapsed .main-content {
+        margin-left: 80px;
+    }
+
+    body.sidebar-collapsed .logo-text,
+    body.sidebar-collapsed .nav-item span:not(.nav-badge),
+    body.sidebar-collapsed .nav-badge,
+    body.sidebar-collapsed .theme-label,
+    body.sidebar-collapsed #connectionText {
+        display: none;
+        opacity: 0;
+    }
+
+    body.sidebar-collapsed .logo,
+    body.sidebar-collapsed .nav-item,
+    body.sidebar-collapsed .theme-toggle-btn,
+    body.sidebar-collapsed .connection-status {
+        justify-content: center;
+    }
+
+    body.sidebar-collapsed .nav-item {
+        padding: .7rem 0;
+    }
+
+    body.sidebar-collapsed .theme-toggle-btn {
+        padding: .55rem 0;
+    }
+
+    body.sidebar-collapsed .sidebar-header,
+    body.sidebar-collapsed .sidebar-footer {
+        padding-left: 0;
+        padding-right: 0;
+        text-align: center;
+    }
+}
+
 /* ═══════════════ RESPONSIVE ═══════════════ */
 @media (max-width: 768px) {
     .sidebar {
@@ -755,10 +804,6 @@ body {
     .main-content {
         margin-left: 0;
         padding: 1rem;
-    }
-
-    .hamburger {
-        display: flex;
     }
 
     .stat-cards {

@@ -53,10 +53,16 @@ function initTheme() {
     if (saved) document.documentElement.setAttribute('data-theme', saved);
 
     document.getElementById('themeToggleBtn').addEventListener('click', () => {
+        document.body.classList.add('theme-transitioning');
+
         const current = document.documentElement.getAttribute('data-theme');
         const next = current === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('metro_admin_theme', next);
+
+        setTimeout(() => {
+            document.body.classList.remove('theme-transitioning');
+        }, 400);
     });
 }
 
@@ -65,7 +71,11 @@ function initTheme() {
 function initHamburger() {
     const sidebar = document.getElementById('sidebar');
     document.getElementById('hamburgerBtn').addEventListener('click', () => {
-        sidebar.classList.toggle('open');
+        if (window.innerWidth <= 768) {
+            sidebar.classList.toggle('open');
+        } else {
+            document.body.classList.toggle('sidebar-collapsed');
+        }
     });
 }
 
