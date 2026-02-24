@@ -9,10 +9,6 @@
 
     /* Sidebar */
     --sidebar-w: 260px;
-    --sidebar-bg: #0f1117;
-    --sidebar-border: rgba(255, 255, 255, .06);
-    --sidebar-text: #94a3b8;
-    --sidebar-text-active: #f1f5f9;
     --sidebar-accent: #6366f1;
 
     /* Line colors */
@@ -34,6 +30,10 @@
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
     --card-shadow: 0 1px 3px rgba(0, 0, 0, .4);
+    --sidebar-bg: #0f1117;
+    --sidebar-border: rgba(255, 255, 255, .06);
+    --sidebar-text: #94a3b8;
+    --sidebar-text-active: #f1f5f9;
     --table-header-bg: #181c28;
     --table-row-hover: rgba(99, 102, 241, .06);
     --table-disabled-bg: rgba(239, 68, 68, .04);
@@ -59,6 +59,10 @@
     --text-secondary: #475569;
     --text-muted: #94a3b8;
     --card-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+    --sidebar-bg: #ffffff;
+    --sidebar-border: rgba(0, 0, 0, .08);
+    --sidebar-text: #475569;
+    --sidebar-text-active: #0f172a;
     --table-header-bg: #f8fafc;
     --table-row-hover: rgba(99, 102, 241, .04);
     --table-disabled-bg: rgba(239, 68, 68, .04);
@@ -192,7 +196,45 @@ body {
     border-top: 1px solid var(--sidebar-border);
 }
 
-.theme-toggle-btn {
+.theme-switcher {
+    position: relative;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.theme-select {
+    width: 100%;
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--sidebar-border);
+    color: var(--sidebar-text);
+    padding: .6rem .8rem;
+    border-radius: .5rem;
+    font-family: var(--font);
+    font-size: .85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+    outline: none;
+}
+
+.theme-select:hover {
+    border-color: var(--sidebar-accent);
+    color: var(--sidebar-text-active);
+}
+
+.theme-switcher .dropdown-icon {
+    position: absolute;
+    right: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--sidebar-text);
+    pointer-events: none;
+}
+
+.btn-logout {
     display: flex;
     align-items: center;
     gap: .6rem;
@@ -209,30 +251,14 @@ body {
     transition: all .2s;
 }
 
-.theme-toggle-btn:hover {
-    background: rgba(255, 255, 255, .05);
-    color: var(--sidebar-text-active);
+.btn-logout:hover {
+    background: rgba(239, 68, 68, .1);
+    color: #ef4444;
 }
 
-.theme-toggle-btn svg {
+.btn-logout svg {
     width: 18px;
     height: 18px;
-}
-
-[data-theme="dark"] .icon-sun {
-    display: inline;
-}
-
-[data-theme="dark"] .icon-moon {
-    display: none;
-}
-
-[data-theme="light"] .icon-sun {
-    display: none;
-}
-
-[data-theme="light"] .icon-moon {
-    display: inline;
 }
 
 .connection-status {
@@ -761,7 +787,8 @@ body {
     body.sidebar-collapsed .logo-text,
     body.sidebar-collapsed .nav-item span:not(.nav-badge),
     body.sidebar-collapsed .nav-badge,
-    body.sidebar-collapsed .theme-label,
+    body.sidebar-collapsed .theme-switcher,
+    body.sidebar-collapsed .logout-label,
     body.sidebar-collapsed #connectionText {
         display: none;
         opacity: 0;
@@ -769,7 +796,7 @@ body {
 
     body.sidebar-collapsed .logo,
     body.sidebar-collapsed .nav-item,
-    body.sidebar-collapsed .theme-toggle-btn,
+    body.sidebar-collapsed .btn-logout,
     body.sidebar-collapsed .connection-status {
         justify-content: center;
     }
@@ -778,7 +805,7 @@ body {
         padding: .7rem 0;
     }
 
-    body.sidebar-collapsed .theme-toggle-btn {
+    body.sidebar-collapsed .btn-logout {
         padding: .55rem 0;
     }
 
@@ -812,5 +839,48 @@ body {
 
     .search-bar-wrapper {
         flex-direction: column;
+    }
+
+    /* Mobile Table Stacking */
+    .data-table,
+    .data-table tbody,
+    .data-table tr,
+    .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .data-table thead {
+        display: none;
+    }
+
+    .data-table tr {
+        margin-bottom: 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: .5rem;
+        padding: 0.5rem;
+    }
+
+    .data-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        border-bottom: 1px solid var(--border);
+        text-align: right;
+    }
+
+    .data-table td:last-child {
+        border-bottom: none;
+    }
+
+    .data-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        text-align: left;
     }
 }

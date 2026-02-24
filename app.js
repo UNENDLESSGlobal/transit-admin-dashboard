@@ -38,31 +38,75 @@ const LINE_COLORS = {
     Red: { bg: '#ef4444', text: '#fecaca' },
 };
 
+/* ═══════════════ SUPABASE & AUTH ═══════════════ */
+const SUPABASE_URL = 'https://gqakrauxcwxpkqawvuul.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxYWtyYXV4Y3d4cGtxYXd2dXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTU5MzAsImV4cCI6MjA4NzIzMTkzMH0.5ETItyGK4CpbC-cS4A3ac45mknl9jK_wMOHDoj-PwIA';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function initAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        window.location.replace('login.html');
+        return false;
+    }
+    return true;
+}
+
 /* ═══════════════ INIT ═══════════════ */
 
-(function init() {
+(async function init() {
+    const authenticated = await initAuth();
+    if (!authenticated) return;
+
     initTheme();
     initHamburger();
+    initLogout();
     fetchRoutes();
 })();
 
 /* ═══════════════ THEME ═══════════════ */
 
 function initTheme() {
-    const saved = localStorage.getItem('metro_admin_theme');
-    if (saved) document.documentElement.setAttribute('data-theme', saved);
+    const saved = localStorage.getItem('metro_admin_theme') || 'system';
+    const themeSelect = document.getElementById('themeSelect');
 
-    document.getElementById('themeToggleBtn').addEventListener('click', () => {
+    function applyTheme(theme) {
+        let activeTheme = theme;
+        if (theme === 'system') {
+            activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', activeTheme);
+    }
+
+    themeSelect.value = saved;
+    applyTheme(saved);
+
+    themeSelect.addEventListener('change', (e) => {
         document.body.classList.add('theme-transitioning');
+        const newTheme = e.target.value;
 
-        const current = document.documentElement.getAttribute('data-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('metro_admin_theme', next);
+        localStorage.setItem('metro_admin_theme', newTheme);
+        applyTheme(newTheme);
 
         setTimeout(() => {
             document.body.classList.remove('theme-transitioning');
         }, 400);
+    });
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (themeSelect.value === 'system') {
+            applyTheme('system');
+        }
+    });
+}
+
+/* ═══════════════ LOGOUT ═══════════════ */
+
+function initLogout() {
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        window.location.replace('login.html');
     });
 }
 
@@ -263,16 +307,16 @@ function renderTable() {
         const c = LINE_COLORS[r.line] || { bg: '#64748b', text: '#f8fafc' };
         html += `
       <tr class="${r.isOperational ? '' : 'disabled-row'}">
-        <td>${i + 1}</td>
-        <td>${r.station1}</td>
-        <td>${r.station2}</td>
-        <td>
+        <td data-label="#">${i + 1}</td>
+        <td data-label="Station 1">${r.station1}</td>
+        <td data-label="Station 2">${r.station2}</td>
+        <td data-label="Line">
           <span class="line-pill"
                 style="--pill-bg:${c.bg}22;--pill-color:${c.text};--pill-border:${c.bg}">
             <span class="pill-dot"></span>${r.line}
           </span>
         </td>
-        <td>
+        <td data-label="Status">
           <label class="toggle-switch">
             <input type="checkbox" ${r.isOperational ? 'checked' : ''}
                    onchange="handleToggle(${r.rowIndex}, this.checked, this)">
