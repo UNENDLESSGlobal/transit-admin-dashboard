@@ -1,10 +1,17 @@
 /* ═══════════════════════════════════════════
    Metro Admin Dashboard — JavaScript Core
    API: Google Apps Script Web App (JSONP GET / text/plain POST)
+   Auth: Supabase (email/password)
    ═══════════════════════════════════════════ */
 
 const API_URL =
     'https://script.google.com/macros/s/AKfycbzVaIluUiAlEzmiNrQSHewk7fB9owJF7Mgor_pjziECWyiw7xpOX2wQfY1xlDre0GfY/exec';
+
+const SUPABASE_URL = 'https://gqakrauxcwxpkqawvuul.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxYWtyYXV4Y3d4cGtxYXd2dXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTU5MzAsImV4cCI6MjA4NzIzMTkzMH0.5ETItyGK4CpbC-cS4A3ac45mknl9jK_wMOHDoj-PwIA';
+
+// ─── Supabase client ───
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── State ───
 let allRoutes = [];
@@ -38,26 +45,21 @@ const LINE_COLORS = {
     Red: { bg: '#ef4444', text: '#fecaca' },
 };
 
-/* ═══════════════ SUPABASE & AUTH ═══════════════ */
-const SUPABASE_URL = 'https://gqakrauxcwxpkqawvuul.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxYWtyYXV4Y3d4cGtxYXd2dXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTU5MzAsImV4cCI6MjA4NzIzMTkzMH0.5ETItyGK4CpbC-cS4A3ac45mknl9jK_wMOHDoj-PwIA';
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-async function initAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        window.location.replace('login.html');
-        return false;
-    }
-    return true;
-}
-
 /* ═══════════════ INIT ═══════════════ */
 
 (async function init() {
-    const authenticated = await initAuth();
-    if (!authenticated) return;
+    // Auth guard — redirect to login if no session
+    try {
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (!session) {
+            window.location.href = 'login.html';
+            return;
+        }
+    } catch (err) {
+        console.error('[Auth] Error checking session:', err);
+        window.location.href = 'login.html';
+        return;
+    }
 
     initTheme();
     initHamburger();
@@ -67,46 +69,68 @@ async function initAuth() {
 
 /* ═══════════════ THEME ═══════════════ */
 
+/**
+ * Theme preference: 'light', 'dark', or 'system'.
+ * Stored in localStorage as 'metro_admin_theme_pref'.
+ */
 function initTheme() {
-    const saved = localStorage.getItem('metro_admin_theme') || 'system';
-    const themeSelect = document.getElementById('themeSelect');
+    const $toggleBtn = document.getElementById('themeToggleBtn');
+    const $dropdown = document.getElementById('themeDropdown');
+    const $options = $dropdown.querySelectorAll('.theme-option');
 
-    function applyTheme(theme) {
-        let activeTheme = theme;
-        if (theme === 'system') {
-            activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        document.documentElement.setAttribute('data-theme', activeTheme);
-    }
+    // Read saved preference (default 'dark')
+    const savedPref = localStorage.getItem('metro_admin_theme_pref') || 'dark';
+    applyThemePreference(savedPref);
 
-    themeSelect.value = saved;
-    applyTheme(saved);
-
-    themeSelect.addEventListener('change', (e) => {
-        document.body.classList.add('theme-transitioning');
-        const newTheme = e.target.value;
-
-        localStorage.setItem('metro_admin_theme', newTheme);
-        applyTheme(newTheme);
-
-        setTimeout(() => {
-            document.body.classList.remove('theme-transitioning');
-        }, 400);
+    // Toggle dropdown visibility on button click
+    $toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        $dropdown.classList.toggle('open');
     });
 
+    // Handle option clicks
+    $options.forEach(opt => {
+        opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const choice = opt.getAttribute('data-theme-choice');
+            document.body.classList.add('theme-transitioning');
+            applyThemePreference(choice);
+            localStorage.setItem('metro_admin_theme_pref', choice);
+            $dropdown.classList.remove('open');
+            setTimeout(() => document.body.classList.remove('theme-transitioning'), 400);
+        });
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', () => {
+        $dropdown.classList.remove('open');
+    });
+
+    // Listen for system theme changes (relevant when preference is 'system')
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        if (themeSelect.value === 'system') {
-            applyTheme('system');
-        }
+        const pref = localStorage.getItem('metro_admin_theme_pref');
+        if (pref === 'system') applyThemePreference('system');
     });
 }
 
-/* ═══════════════ LOGOUT ═══════════════ */
+function applyThemePreference(pref) {
+    const $toggleBtn = document.getElementById('themeToggleBtn');
+    const $dropdown = document.getElementById('themeDropdown');
+    let resolvedTheme;
 
-function initLogout() {
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-        await supabase.auth.signOut();
-        window.location.replace('login.html');
+    if (pref === 'system') {
+        resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        $toggleBtn.classList.add('system-active');
+    } else {
+        resolvedTheme = pref;
+        $toggleBtn.classList.remove('system-active');
+    }
+
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+
+    // Update active state on dropdown options
+    $dropdown.querySelectorAll('.theme-option').forEach(opt => {
+        opt.classList.toggle('active', opt.getAttribute('data-theme-choice') === pref);
     });
 }
 
@@ -114,6 +138,8 @@ function initLogout() {
 
 function initHamburger() {
     const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
     document.getElementById('hamburgerBtn').addEventListener('click', () => {
         if (window.innerWidth <= 768) {
             sidebar.classList.toggle('open');
@@ -121,6 +147,29 @@ function initHamburger() {
             document.body.classList.toggle('sidebar-collapsed');
         }
     });
+
+    // Close sidebar when clicking overlay on mobile
+    if (overlay) {
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+        });
+    }
+}
+
+/* ═══════════════ LOGOUT ═══════════════ */
+
+function initLogout() {
+    const $logoutBtn = document.getElementById('logoutBtn');
+    if ($logoutBtn) {
+        $logoutBtn.addEventListener('click', async () => {
+            try {
+                await _supabase.auth.signOut();
+            } catch (err) {
+                console.error('[Auth] Logout error:', err);
+            }
+            window.location.href = 'login.html';
+        });
+    }
 }
 
 /* ═══════════════ UI HELPERS ═══════════════ */
@@ -307,16 +356,16 @@ function renderTable() {
         const c = LINE_COLORS[r.line] || { bg: '#64748b', text: '#f8fafc' };
         html += `
       <tr class="${r.isOperational ? '' : 'disabled-row'}">
-        <td data-label="#">${i + 1}</td>
-        <td data-label="Station 1">${r.station1}</td>
-        <td data-label="Station 2">${r.station2}</td>
-        <td data-label="Line">
+        <td>${i + 1}</td>
+        <td>${r.station1}</td>
+        <td>${r.station2}</td>
+        <td>
           <span class="line-pill"
                 style="--pill-bg:${c.bg}22;--pill-color:${c.text};--pill-border:${c.bg}">
             <span class="pill-dot"></span>${r.line}
           </span>
         </td>
-        <td data-label="Status">
+        <td>
           <label class="toggle-switch">
             <input type="checkbox" ${r.isOperational ? 'checked' : ''}
                    onchange="handleToggle(${r.rowIndex}, this.checked, this)">

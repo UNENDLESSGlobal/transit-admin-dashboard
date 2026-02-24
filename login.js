@@ -1,78 +1,93 @@
-// Supabase configuration
+/* ═══════════════════════════════════════════
+   Metro Admin — Login Page Logic
+   Supabase email/password auth only
+   ═══════════════════════════════════════════ */
+
 const SUPABASE_URL = 'https://gqakrauxcwxpkqawvuul.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxYWtyYXV4Y3d4cGtxYXd2dXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTU5MzAsImV4cCI6MjA4NzIzMTkzMH0.5ETItyGK4CpbC-cS4A3ac45mknl9jK_wMOHDoj-PwIA';
 
-// Initialize Supabase Client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// DOM Elements
-const loginForm = document.getElementById('loginForm');
-const loginBtn = document.getElementById('loginBtn');
-const toastContainer = document.getElementById('toastContainer');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
+// ─── DOM refs ───
+const $loginForm = document.getElementById('loginForm');
+const $email = document.getElementById('email');
+const $password = document.getElementById('password');
+const $loginBtn = document.getElementById('loginBtn');
+const $errorMessage = document.getElementById('errorMessage');
+const $togglePassword = document.getElementById('togglePassword');
 
-// Toast helper
-function showToast(message, type = 'success') {
-    const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    el.textContent = message;
-    toastContainer.appendChild(el);
-    setTimeout(() => el.remove(), 3500);
-}
+// ─── If already logged in, redirect ───
+(async function checkSession() {
+    try {
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (session) {
+            window.location.href = 'index.html';
+        }
+    } catch (_) { /* ignore */ }
+})();
 
-// Check session on load
-window.addEventListener('DOMContentLoaded', async () => {
-    // Attempt to load dark mode based on preference
-    const savedTheme = localStorage.getItem('metro_admin_theme');
-    if (savedTheme) {
-        document.documentElement.setAttribute('data-theme', savedTheme);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-    }
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-        // Already logged in, redirect to index
-        window.location.href = 'index.html';
-    }
+// ─── Toggle password visibility ───
+$togglePassword.addEventListener('click', () => {
+    const isPassword = $password.type === 'password';
+    $password.type = isPassword ? 'text' : 'password';
+    $togglePassword.classList.toggle('active', isPassword);
 });
 
-// Handle login attempt
-loginForm.addEventListener('submit', async (e) => {
+// ─── Form submit ───
+$loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+    const email = $email.value.trim();
+    const password = $password.value;
 
     if (!email || !password) {
-        showToast('Please enter email and password.', 'error');
+        showError('Please enter your email and password.');
         return;
     }
 
-    // Set button loading state
-    const originalText = loginBtn.innerHTML;
-    loginBtn.innerHTML = 'Signing in...';
-    loginBtn.disabled = true;
+    setLoading(true);
+    hideError();
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await _supabase.auth.signInWithPassword({
             email,
-            password
+            password,
         });
 
-        if (error) throw error;
+        if (error) {
+            showError(error.message || 'Invalid email or password.');
+            setLoading(false);
+            return;
+        }
 
-        showToast('Login successful!', 'success');
-
-        // Redirect shortly after
-        setTimeout(() => {
+        if (data.session) {
             window.location.href = 'index.html';
-        }, 1000);
+        } else {
+            showError('Login failed. Please try again.');
+            setLoading(false);
+        }
     } catch (err) {
-        console.error('Login Error:', err);
-        showToast(err.message || 'Failed to sign in. Please try again.', 'error');
-        loginBtn.innerHTML = originalText;
-        loginBtn.disabled = false;
+        console.error('[Auth] Login error:', err);
+        showError('An unexpected error occurred. Please try again.');
+        setLoading(false);
     }
 });
+
+// ─── Helpers ───
+function showError(msg) {
+    $errorMessage.textContent = msg;
+    $errorMessage.classList.add('visible');
+}
+
+function hideError() {
+    $errorMessage.textContent = '';
+    $errorMessage.classList.remove('visible');
+}
+
+function setLoading(isLoading) {
+    if (isLoading) {
+        $loginBtn.classList.add('loading');
+    } else {
+        $loginBtn.classList.remove('loading');
+    }
+}
